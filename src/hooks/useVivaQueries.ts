@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   appendTurnToAttempt,
   createVivaAttempt,
+  createUniqueId,
   getAttemptById,
   listUserAttempts,
   saveAttemptRevision,
-} from '../lib/attempts'
-import { runExaminerTurnFn } from '../server/examiner-turn.fn'
-import { runRevisionPointFn } from '../server/revision-point.fn'
-import type { VivaAttempt, VivaMessage } from '../types/viva'
+} from '#/lib/attempts'
+import { runExaminerTurnFn } from '#/server/examiner-turn.fn'
+import { runRevisionPointFn } from '#/server/revision-point.fn'
+import type { VivaAttempt, VivaMessage } from '#/types/viva'
 
 export const vivaKeys = {
   attempts: (uid: string | null) => ['viva-attempts', uid] as const,
@@ -53,6 +54,7 @@ export function useCreateAttemptMutation(uid: string | null) {
       })
     },
     onSuccess: (created) => {
+      if (!uid) return
       queryClient.setQueryData(vivaKeys.attempt(uid, created.id), created)
       void queryClient.invalidateQueries({ queryKey: vivaKeys.attempts(uid) })
     },
@@ -67,9 +69,13 @@ export function useProcessVivaTurnMutation(uid: string | null) {
       attempt: VivaAttempt
       transcript: string
     }) => {
+      if (!uid) {
+        throw new Error('Must be signed in to submit a viva turn.')
+      }
+
       const now = Date.now()
       const traineeMsg: VivaMessage = {
-        id: `msg_${now}_u`,
+        id: createUniqueId('msg_u', now),
         role: 'trainee',
         text: params.transcript,
         createdAt: now,
@@ -84,20 +90,25 @@ export function useProcessVivaTurnMutation(uid: string | null) {
         },
       })
 
-      const matchedIds = turnResult.matchedFindings.map((f) => f.id)
+      const examinerTimestamp = Math.max(Date.now(), now + 1)
+      const matchedIds = Array.from(
+        new Set(turnResult.matchedFindings.map((f) => f.id)),
+      )
       const examinerMsg: VivaMessage = {
-        id: `msg_${now + 1}_e`,
+        id: createUniqueId('msg_e', examinerTimestamp),
         role: 'examiner',
         text: turnResult.spokenResponse,
         spokenFollowUp: turnResult.followUpQuestion,
         referencedFindingIds: matchedIds,
-        createdAt: now + 1,
+        createdAt: examinerTimestamp,
       }
 
-      await appendTurnToAttempt({
+      const persistedUpdatedAt = await appendTurnToAttempt({
         attemptId: params.attempt.id,
+        ownerUid: uid,
         newMessages: [traineeMsg, examinerMsg],
         newFindingIds: matchedIds,
+        updatedAt: examinerTimestamp,
       })
 
       const updatedAttempt: VivaAttempt = {
@@ -106,7 +117,7 @@ export function useProcessVivaTurnMutation(uid: string | null) {
         revealedFindingIds: Array.from(
           new Set([...params.attempt.revealedFindingIds, ...matchedIds]),
         ),
-        updatedAt: now + 1,
+        updatedAt: persistedUpdatedAt,
       }
 
       return {
@@ -115,6 +126,7 @@ export function useProcessVivaTurnMutation(uid: string | null) {
       }
     },
     onSuccess: ({ updatedAttempt }) => {
+      if (!uid) return
       queryClient.setQueryData(
         vivaKeys.attempt(uid, updatedAttempt.id),
         updatedAttempt,
@@ -129,28 +141,39 @@ export function useGenerateRevisionMutation(uid: string | null) {
 
   return useMutation({
     mutationFn: async (params: { attempt: VivaAttempt }) => {
+      if (!uid) {
+        throw new Error('Must be signed in to generate a revision point.')
+      }
+
       const { revision, retrievedPages } = await runRevisionPointFn({
         data: {
           messages: params.attempt.messages,
         },
       })
 
-      await saveAttemptRevision({
+      const revisionTimestamp = Math.max(
+        Date.now(),
+        params.attempt.updatedAt + 1,
+      )
+      const persistedUpdatedAt = await saveAttemptRevision({
         attemptId: params.attempt.id,
+        ownerUid: uid,
         revisionPoint: revision,
         markCompleted: true,
+        updatedAt: revisionTimestamp,
       })
 
       const updatedAttempt: VivaAttempt = {
         ...params.attempt,
         revisionPoint: revision,
         status: 'completed',
-        updatedAt: Date.now(),
+        updatedAt: persistedUpdatedAt,
       }
 
       return { updatedAttempt, retrievedPages }
     },
     onSuccess: ({ updatedAttempt }) => {
+      if (!uid) return
       queryClient.setQueryData(
         vivaKeys.attempt(uid, updatedAttempt.id),
         updatedAttempt,

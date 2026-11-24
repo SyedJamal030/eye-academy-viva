@@ -10,14 +10,43 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore'
+import type { CitedRevisionPoint, VivaAttempt, VivaMessage } from '#/types/viva'
 import { db } from './firebase'
-import type {
-  CitedRevisionPoint,
-  VivaAttempt,
-  VivaMessage,
-} from '../types/viva'
 
 const ATTEMPTS_COLLECTION = 'vivaAttempts'
+
+let idSequence = 0
+function createUniqueId(prefix: string, timestampMs: number): string {
+  idSequence = (idSequence + 1) % 1_000_000
+  return `${prefix}_${timestampMs}_${idSequence}`
+}
+
+function toSafeTimestamp(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+async function assertAttemptOwner(
+  attemptId: string,
+  ownerUid: string,
+): Promise<void> {
+  if (!ownerUid.trim()) {
+    throw new Error('Authentication required to modify viva attempt.')
+  }
+  if (!attemptId.trim()) {
+    throw new Error('Attempt ID is required.')
+  }
+
+  const ref = doc(db, ATTEMPTS_COLLECTION, attemptId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) {
+    throw new Error('Viva attempt not found.')
+  }
+
+  const data = snap.data() as Partial<VivaAttempt>
+  if (data.ownerUid !== ownerUid) {
+    throw new Error('Unauthorized access to attempt.')
+  }
+}
 
 export async function createVivaAttempt(params: {
   ownerUid: string
@@ -25,9 +54,13 @@ export async function createVivaAttempt(params: {
   title: string
   openingPrompt: string
 }): Promise<VivaAttempt> {
+  if (!params.ownerUid.trim()) {
+    throw new Error('Must be signed in to create an attempt.')
+  }
+
   const now = Date.now()
   const initialMessage: VivaMessage = {
-    id: `msg_${now}`,
+    id: createUniqueId('msg', now),
     role: 'examiner',
     text: params.openingPrompt,
     createdAt: now,
@@ -56,6 +89,8 @@ export async function createVivaAttempt(params: {
 export async function listUserAttempts(
   ownerUid: string,
 ): Promise<VivaAttempt[]> {
+  if (!ownerUid.trim()) return []
+
   const q = query(
     collection(db, ATTEMPTS_COLLECTION),
     where('ownerUid', '==', ownerUid),
@@ -67,20 +102,22 @@ export async function listUserAttempts(
       id: d.id,
       ...(d.data() as Omit<VivaAttempt, 'id'>),
     }))
-    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .sort((a, b) => toSafeTimestamp(b.updatedAt) - toSafeTimestamp(a.updatedAt))
 }
 
 export async function getAttemptById(
   attemptId: string,
   ownerUid: string,
 ): Promise<VivaAttempt | null> {
+  if (!ownerUid.trim() || !attemptId.trim()) return null
+
   const ref = doc(db, ATTEMPTS_COLLECTION, attemptId)
   const snap = await getDoc(ref)
   if (!snap.exists()) return null
 
   const data = snap.data() as Omit<VivaAttempt, 'id'>
   if (data.ownerUid !== ownerUid) {
-    throw new Error('Unauthorized access to attempt')
+    throw new Error('Unauthorized access to attempt.')
   }
 
   return {
@@ -91,12 +128,17 @@ export async function getAttemptById(
 
 export async function appendTurnToAttempt(params: {
   attemptId: string
+  ownerUid: string
   newMessages: VivaMessage[]
   newFindingIds: string[]
-}): Promise<void> {
+  updatedAt?: number
+}): Promise<number> {
+  await assertAttemptOwner(params.attemptId, params.ownerUid)
+
+  const timestampMs = params.updatedAt ?? Date.now()
   const ref = doc(db, ATTEMPTS_COLLECTION, params.attemptId)
   const updates: Record<string, unknown> = {
-    updatedAt: Date.now(),
+    updatedAt: timestampMs,
     serverUpdatedAt: serverTimestamp(),
   }
 
@@ -108,18 +150,27 @@ export async function appendTurnToAttempt(params: {
   }
 
   await updateDoc(ref, updates)
+  return timestampMs
 }
 
 export async function saveAttemptRevision(params: {
   attemptId: string
+  ownerUid: string
   revisionPoint: CitedRevisionPoint
   markCompleted?: boolean
-}): Promise<void> {
+  updatedAt?: number
+}): Promise<number> {
+  await assertAttemptOwner(params.attemptId, params.ownerUid)
+
+  const timestampMs = params.updatedAt ?? Date.now()
   const ref = doc(db, ATTEMPTS_COLLECTION, params.attemptId)
   await updateDoc(ref, {
     revisionPoint: params.revisionPoint,
     status: params.markCompleted ? 'completed' : 'in_progress',
-    updatedAt: Date.now(),
+    updatedAt: timestampMs,
     serverUpdatedAt: serverTimestamp(),
   })
+  return timestampMs
 }
+
+export { createUniqueId }

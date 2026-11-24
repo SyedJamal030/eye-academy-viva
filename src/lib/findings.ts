@@ -1,7 +1,133 @@
-import caseData from '../data/case-ea-viva-001.json'
-import type { EyeSide, FindingItem } from '../types/viva'
+import caseData from '#/data/case-ea-viva-001.json'
+import type { EyeSide, FindingItem } from '#/types/viva'
 
 const ALL_FINDINGS = caseData.findings as FindingItem[]
+
+interface KeywordRule {
+  idPrefixOrId: string
+  patterns: RegExp[]
+}
+
+const KEYWORD_RULES: KeywordRule[] = [
+  {
+    idPrefixOrId: 'va_',
+    patterns: [
+      /\bvision\b/i,
+      /\bvisual acuity\b/i,
+      /\bacuity\b/i,
+      /\bsnellen\b/i,
+      /\b6\/\d+\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'iop_',
+    patterns: [
+      /\biop\b/i,
+      /\bintraocular\b/i,
+      /\bpressure\b/i,
+      /\btonometry\b/i,
+      /\bgoldmann\b/i,
+      /\bmmhg\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'conj_',
+    patterns: [
+      /\bconjunctiva\b/i,
+      /\bredness\b/i,
+      /\binjection\b/i,
+      /\bflush\b/i,
+      /\bciliary\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'cornea_',
+    patterns: [
+      /\bcornea\b/i,
+      /\bcorneal\b/i,
+      /\boedema\b/i,
+      /\bedema\b/i,
+      /\bhazy\b/i,
+      /\bcloud/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'ac_',
+    patterns: [
+      /\banterior chamber\b/i,
+      /\bchamber depth\b/i,
+      /\bvan herick\b/i,
+      /\bshallow\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'pupil_',
+    patterns: [/\bpupil\b/i, /\bdilat/i, /\breactiv/i, /\bpen torch\b/i],
+  },
+  {
+    idPrefixOrId: 'rapd',
+    patterns: [/\brapd\b/i, /\bafferent\b/i, /\bswinging\b/i],
+  },
+  {
+    idPrefixOrId: 'lens_',
+    patterns: [/\blens\b/i, /\bsclerosis\b/i, /\bcataract/i],
+  },
+  {
+    idPrefixOrId: 'gonio_',
+    patterns: [
+      /\bgonioscopy\b/i,
+      /\bangle\b/i,
+      /\bsy?nechi/i,
+      /\bpas\b/i,
+      /\biridotrabecular\b/i,
+      /\bzeiss\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'fundus_',
+    patterns: [
+      /\boptic disc\b/i,
+      /\bdisc\b/i,
+      /\bfundus\b/i,
+      /\bcup\b/i,
+      /\bmacula\b/i,
+      /\bbiomicroscopy\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'refraction',
+    patterns: [
+      /\brefraction\b/i,
+      /\bglasses\b/i,
+      /\bfocimetry\b/i,
+      /\bdiopt/i,
+      /\blong-sighted\b/i,
+    ],
+  },
+  {
+    idPrefixOrId: 'axial_length',
+    patterns: [/\baxial\b/i, /\bbiometry\b/i, /\blength\b/i],
+  },
+  {
+    idPrefixOrId: 'oct',
+    patterns: [/\boct\b/i, /\btomography\b/i],
+  },
+  {
+    idPrefixOrId: 'bp',
+    patterns: [/\bblood pressure\b/i, /\bbp\b/i, /\bcuff\b/i],
+  },
+  {
+    idPrefixOrId: 'u_and_e',
+    patterns: [
+      /\burea\b/i,
+      /\belectrolyte/i,
+      /\bu&e\b/i,
+      /\bu and e\b/i,
+      /\bbloods?\b/i,
+      /\bkidney\b/i,
+    ],
+  },
+]
 
 export function getAllCaseFindings(): FindingItem[] {
   return ALL_FINDINGS
@@ -23,126 +149,8 @@ export function findMatchingFindings(utterance: string): FindingItem[] {
   const q = utterance.toLowerCase()
   const requestedEye = detectRequestedEye(q)
 
-  const keywordRules: Array<{ idPrefixOrId: string; patterns: RegExp[] }> = [
-    {
-      idPrefixOrId: 'va_',
-      patterns: [
-        /\bvision\b/,
-        /\bvisual acuity\b/,
-        /\bacuity\b/,
-        /\bsnellen\b/,
-        /\b6\/\d+\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'iop_',
-      patterns: [
-        /\biop\b/,
-        /\bintraocular\b/,
-        /\bpressure\b/,
-        /\btonometry\b/,
-        /\bgoldmann\b/,
-        /\bmmhg\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'conj_',
-      patterns: [
-        /\bconjunctiva\b/,
-        /\bredness\b/,
-        /\binjection\b/,
-        /\bflush\b/,
-        /\bciliary\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'cornea_',
-      patterns: [
-        /\bcornea\b/,
-        /\bcorneal\b/,
-        /\boedema\b/,
-        /\bedema\b/,
-        /\bhazy\b/,
-        /\bcloud/i,
-      ],
-    },
-    {
-      idPrefixOrId: 'ac_',
-      patterns: [
-        /\banterior chamber\b/,
-        /\bchamber depth\b/,
-        /\bvan herick\b/,
-        /\bshallow\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'pupil_',
-      patterns: [/\bpupil\b/, /\bdilat/i, /\breactiv/i, /\bpen torch\b/],
-    },
-    {
-      idPrefixOrId: 'rapd',
-      patterns: [/\brapd\b/, /\bafferent\b/, /\bswinging\b/],
-    },
-    {
-      idPrefixOrId: 'lens_',
-      patterns: [/\blens\b/, /\bsclerosis\b/, /\bcataract/i],
-    },
-    {
-      idPrefixOrId: 'gonio_',
-      patterns: [
-        /\bgonioscopy\b/,
-        /\bangle\b/,
-        /\bsy平台/i,
-        /\bsy想/i,
-        /\biridotrabecular\b/,
-        /\bzeiss\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'fundus_',
-      patterns: [
-        /\boptic disc\b/,
-        /\bdisc\b/,
-        /\bfundus\b/,
-        /\bcup\b/,
-        /\bmacula\b/,
-        /\bbiomicroscopy\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'refraction',
-      patterns: [
-        /\brefraction\b/,
-        /\bglasses\b/,
-        /\bfocimetry\b/,
-        /\bdiopt/i,
-        /\blong-sighted\b/,
-      ],
-    },
-    {
-      idPrefixOrId: 'axial_length',
-      patterns: [/\baxial\b/, /\bbiometry\b/, /\blength\b/],
-    },
-    { idPrefixOrId: 'oct', patterns: [/\boct\b/, /\btomography\b/] },
-    {
-      idPrefixOrId: 'bp',
-      patterns: [/\bblood pressure\b/, /\bbp\b/, /\bcuff\b/],
-    },
-    {
-      idPrefixOrId: 'u_and_e',
-      patterns: [
-        /\burea\b/,
-        /\belectrolyte/i,
-        /\bu&e\b/,
-        /\bu and e\b/,
-        /\bbloods?\b/,
-        /\bkidney\b/,
-      ],
-    },
-  ]
-
   const matchedIds = new Set<string>()
-  for (const rule of keywordRules) {
+  for (const rule of KEYWORD_RULES) {
     if (rule.patterns.some((re) => re.test(q))) {
       for (const item of ALL_FINDINGS) {
         if (
