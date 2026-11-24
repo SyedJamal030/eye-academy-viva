@@ -41,3 +41,20 @@ export interface VivaAttempt {
   createdAt: number
   updatedAt: number
 }
+
+export interface CasePatientProfile {
+  age: number | string
+  sex: string
+  presenting_complaint: string
+  past_ocular_history: string
+  medications: string[]
+  allergies: string
+  family_history: string
+}
+
+export interface VivaCaseData {
+  case_id: string
+  title: string
+  opening_prompt: string
+  patient: CasePatientProfile
+}

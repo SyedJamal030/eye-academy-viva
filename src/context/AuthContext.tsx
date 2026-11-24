@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import type { User } from 'firebase/auth'
@@ -21,9 +21,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub()
   }, [])
 
-  const signOutUser = async () => {
+  const signOutUser = useCallback(async () => {
     await signOut(auth)
-  }
+  }, [])
 
   if (!authReady) {
     return (

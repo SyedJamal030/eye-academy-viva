@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import { FirebaseError } from 'firebase/app'
 import {
@@ -39,7 +39,7 @@ export function AuthGate() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback(async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
@@ -55,7 +55,7 @@ export function AuthGate() {
     } finally {
       setSubmitting(false)
     }
-  }
+  }, [])
 
   return (
     <Container
