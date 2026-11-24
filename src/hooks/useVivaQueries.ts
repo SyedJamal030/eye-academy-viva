@@ -11,6 +11,7 @@ import { runExaminerTurnFn } from '#/server/examiner-turn.fn'
 import { runRevisionPointFn } from '#/server/revision-point.fn'
 import type { VivaAttempt, VivaMessage } from '#/types/viva'
 import { getPublicCaseBriefFn } from '#/server/case-brief.fn'
+import { getRequiredIdToken } from '#/lib/token'
 
 export const vivaKeys = {
   attempts: (uid: string | null) => ['viva-attempts', uid] as const,
@@ -84,8 +85,10 @@ export function useProcessVivaTurnMutation(uid: string | null) {
 
       const nextHistory = [...params.attempt.messages, traineeMsg]
 
+      const idToken = await getRequiredIdToken()
       const turnResult = await runExaminerTurnFn({
         data: {
+          idToken,
           traineeUtterance: params.transcript,
           recentMessages: nextHistory,
         },
@@ -146,8 +149,10 @@ export function useGenerateRevisionMutation(uid: string | null) {
         throw new Error('Must be signed in to generate a revision point.')
       }
 
+      const idToken = await getRequiredIdToken()
       const { revision, retrievedPages } = await runRevisionPointFn({
         data: {
+          idToken,
           messages: params.attempt.messages,
         },
       })

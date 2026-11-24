@@ -10,10 +10,12 @@ export const vivaMessageSchema = z.object({
 })
 
 export const examinerTurnInputSchema = z.object({
+  idToken: z.string().min(1).max(4096),
   traineeUtterance: z.string().trim().min(1).max(2000),
   recentMessages: z.array(vivaMessageSchema).max(50),
 })
 
 export const revisionPointInputSchema = z.object({
+  idToken: z.string().min(1).max(4096),
   messages: z.array(vivaMessageSchema).min(1).max(100),
 })
