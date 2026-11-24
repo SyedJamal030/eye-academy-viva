@@ -71,6 +71,8 @@ function VivaHomePage() {
     speechError,
     isBusy,
     voice,
+    autoListen,
+    setAutoListen,
     handleTextSubmit,
   } = useVivaTurnController({
     activeAttempt,
@@ -129,6 +131,22 @@ function VivaHomePage() {
 
         <Container as="main" className="py-4" style={{ maxWidth: '56rem' }}>
           <div className="d-flex flex-column gap-3">
+            <PatientCaseCard caseData={caseData} />
+
+            <ExaminerTurnControls
+              phase={voice.phase}
+              liveTranscript={voice.liveTranscript}
+              typedInput={typedInput}
+              isBusy={isBusy}
+              hasActiveAttempt={Boolean(activeAttempt)}
+              autoListen={autoListen}
+              onAutoListenChange={setAutoListen}
+              onStartListening={voice.startListening}
+              onStopListening={voice.stopListening}
+              onTypedInputChange={setTypedInput}
+              onSubmit={handleTextSubmit}
+            />
+
             <TurnIndicator phase={voice.phase} lastTurnMs={voice.lastTurnMs} />
 
             {combinedError && (
@@ -140,20 +158,6 @@ function VivaHomePage() {
                 {combinedError}
               </Alert>
             )}
-
-            <PatientCaseCard caseData={caseData} />
-
-            <ExaminerTurnControls
-              phase={voice.phase}
-              liveTranscript={voice.liveTranscript}
-              typedInput={typedInput}
-              isBusy={isBusy}
-              hasActiveAttempt={Boolean(activeAttempt)}
-              onStartListening={voice.startListening}
-              onStopListening={voice.stopListening}
-              onTypedInputChange={setTypedInput}
-              onSubmit={handleTextSubmit}
-            />
 
             <TranscriptPanel messages={activeAttempt?.messages} />
 

@@ -12,7 +12,8 @@ const PHASE_CONFIG: Record<
 > = {
   idle: {
     label: 'Ready for your turn',
-    detail: 'Press Speak or type your question or management reasoning.',
+    detail:
+      'Hold Spacebar or Press Speak or type your question or management reasoning.',
     badgeVariant: 'success',
     badgeClassName:
       'bg-success-subtle text-success-emphasis border border-success-subtle',
