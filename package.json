@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "wrangler": "npx wrangler dev",
+    "pdf-parser": "npx -y -p pdfjs-dist node scripts/extract-reference-pdf.mjs",
     "generate-routes": "vite build",
     "build": "vite build",
     "preview": "vite preview",
