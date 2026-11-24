@@ -106,4 +106,15 @@ _(If running on Windows PowerShell and encountering process-teardown or shell is
 ### Included Attachment
 
 - Screenshot of my AI API usage, showing no API cost yet (well under the £10 limit).
+
   ![AI API Usage Screenshot](gemini-usage.png)
+
+---
+
+## 5. Changes After Review
+
+- **Server-only case brief loading (`getPublicCaseBriefFn`):** Kept full case data and `examiner_notes` strictly on the server, serving trainee-safe case briefs (`opening_prompt`, `patient`, and `findings`) to the client so examiner notes are never exposed directly in client bundles or public responses.
+- **Firestore owner-only security rules (`firestore.rules`):** Added Firestore security rules enforcing that authenticated users can only read, create, update, and delete their own attempt documents where `ownerUid == request.auth.uid`.
+- **Server-side Firebase ID token verification:** Verified Firebase ID tokens on server functions (`examiner-turn.fn.ts` and `revision-point.fn.ts`) using `jose` against Google's JWKS endpoint before executing viva turns or revision point generation.
+- **Hardened finding lookup (`src/lib/findings.ts`):** Refined finding lookup logic to stay deterministic and avoid false positives on blood pressure vs. intraocular pressure, pupil checks vs. unrelated terms, medication/history questions, and spoken diagnosis or management statements (while still supporting mixed turns that include an explicit examination request).
+- **Gemini model fallback and transient error logging (`src/lib/gemini-client.ts`):** Added fallback model progression (`primary`, optional fallback, `gemini-3.1-flash-lite`, `gemini-3.8-flash`, `gemini-3.5-flash`) with single-pass per-model handling by default and clear attempt/error logging during `503` / `UNAVAILABLE` demand spikes.
