@@ -105,4 +105,5 @@ _(If running on Windows PowerShell and encountering process-teardown or shell is
 
 ### Included Attachment
 
-- Screenshot of my AI API usage showing spend under £10.
+- Screenshot of my AI API usage, showing no API cost yet (well under the £10 limit).
+  ![AI API Usage Screenshot](gemini-usage.png)
