@@ -8,9 +8,6 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true, dedupe: ['react', 'react-dom'] },
-  ssr: {
-    noExternal: ['react-bootstrap'],
-  },
   plugins: [
     devtools(),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
