@@ -1,5 +1,5 @@
 import Badge from 'react-bootstrap/Badge'
-import type { TurnPhase } from '../types/viva'
+import type { TurnPhase } from '#/types/viva'
 
 const PHASE_CONFIG: Record<
   TurnPhase,
@@ -50,7 +50,11 @@ export function TurnIndicator({
   const cfg = PHASE_CONFIG[phase]
 
   return (
-    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 rounded-3 border bg-white p-3">
+    <div
+      className="d-flex flex-wrap align-items-center justify-content-between gap-2 rounded-3 border bg-white p-3"
+      role="status"
+      aria-live="polite"
+    >
       <div className="d-flex flex-wrap align-items-center gap-3">
         <Badge
           pill

@@ -66,7 +66,7 @@ export function useVivaTurnController({
   }, [voice.speakText])
 
   const handleTextSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
+    async (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault()
       const trimmed = typedInput.trim()
       if (!trimmed || !activeAttemptRef.current) return

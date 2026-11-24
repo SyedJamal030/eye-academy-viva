@@ -1,22 +1,29 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import type { User } from 'firebase/auth'
-import { auth } from '../lib/firebase'
-import { AuthContext } from './auth'
+import Container from 'react-bootstrap/Container'
+import Spinner from 'react-bootstrap/Spinner'
 import { AuthGate } from '#/components/AuthGate'
-import Container from 'react-bootstrap/esm/Container'
-import Spinner from 'react-bootstrap/esm/Spinner'
+import { auth } from '#/lib/firebase'
+import { AuthContext } from './auth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setAuthReady(true)
-    })
+    const unsub = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser)
+        setAuthReady(true)
+      },
+      () => {
+        setUser(null)
+        setAuthReady(true)
+      },
+    )
 
     return () => unsub()
   }, [])
@@ -24,6 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOutUser = useCallback(async () => {
     await signOut(auth)
   }, [])
+
+  const contextValue = useMemo(
+    () => ({ user, authReady, signOutUser }),
+    [user, authReady, signOutUser],
+  )
 
   if (!authReady) {
     return (
@@ -42,8 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, authReady, signOutUser }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   )
 }

@@ -12,7 +12,7 @@ interface ExaminerTurnControlsProps {
   onStartListening: () => void
   onStopListening: () => void
   onTypedInputChange: (value: string) => void
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  onSubmit: (e: React.SubmitEvent<HTMLFormElement>) => void
 }
 
 export function ExaminerTurnControls({

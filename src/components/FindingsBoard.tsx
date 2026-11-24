@@ -1,6 +1,15 @@
+import { useMemo } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import ListGroup from 'react-bootstrap/ListGroup'
-import type { FindingItem } from '../types/viva'
+import { formatFindingForDisplayAndSpeech } from '#/lib/findings'
+import type { EyeSide, FindingItem } from '#/types/viva'
+
+function formatEyeLabel(eye: EyeSide): string {
+  if (eye === 'right') return 'Right eye'
+  if (eye === 'left') return 'Left eye'
+  if (eye === 'both') return 'Both eyes'
+  return 'General'
+}
 
 export function FindingsBoard({
   allFindings,
@@ -9,8 +18,10 @@ export function FindingsBoard({
   allFindings: FindingItem[]
   revealedIds: string[]
 }) {
-  const revealedSet = new Set(revealedIds)
-  const revealedItems = allFindings.filter((f) => revealedSet.has(f.id))
+  const revealedItems = useMemo(() => {
+    const revealedSet = new Set(revealedIds)
+    return allFindings.filter((f) => revealedSet.has(f.id))
+  }, [allFindings, revealedIds])
 
   return (
     <section className="rounded-3 border bg-white p-4">
@@ -31,14 +42,7 @@ export function FindingsBoard({
       ) : (
         <ListGroup variant="flush" className="mt-3">
           {revealedItems.map((item) => {
-            const eyeText =
-              item.eye === 'right'
-                ? 'Right eye'
-                : item.eye === 'left'
-                  ? 'Left eye'
-                  : item.eye === 'both'
-                    ? 'Both eyes'
-                    : 'General'
+            const { displaySummary } = formatFindingForDisplayAndSpeech(item)
 
             return (
               <ListGroup.Item
@@ -49,7 +53,7 @@ export function FindingsBoard({
               >
                 <div className="d-flex align-items-center justify-content-between gap-2">
                   <span className="small fw-medium text-dark">
-                    {eyeText} · {item.label}
+                    {formatEyeLabel(item.eye)} · {item.label}
                   </span>
                   <Badge
                     bg={item.available ? 'success' : 'secondary'}
@@ -63,21 +67,13 @@ export function FindingsBoard({
                   </Badge>
                 </div>
 
-                {item.available ? (
-                  <p className="mt-1 mb-0 small text-body">
-                    <strong>{String(item.value)}</strong>
-                    {item.unit && !String(item.value).includes(item.unit)
-                      ? ` ${item.unit}`
-                      : ''}
-                    {item.method ? (
-                      <span className="text-secondary"> ({item.method})</span>
-                    ) : null}
-                  </p>
-                ) : (
-                  <p className="mt-1 mb-0 small text-secondary">
-                    Not available: {item.unavailable_reason ?? 'Not recorded.'}
-                  </p>
-                )}
+                <p
+                  className={`mt-1 mb-0 small ${
+                    item.available ? 'text-body fw-medium' : 'text-secondary'
+                  }`}
+                >
+                  {displaySummary}
+                </p>
               </ListGroup.Item>
             )
           })}

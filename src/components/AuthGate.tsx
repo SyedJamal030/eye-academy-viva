@@ -10,7 +10,7 @@ import Button from 'react-bootstrap/Button'
 import Card from 'react-bootstrap/Card'
 import Container from 'react-bootstrap/Container'
 import Form from 'react-bootstrap/Form'
-import { auth } from '../lib/firebase'
+import { auth } from '#/lib/firebase'
 
 function formatAuthError(err: unknown): string {
   if (err instanceof FirebaseError) {
@@ -39,23 +39,31 @@ export function AuthGate() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = useCallback(async (e: SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError(null)
-    setSubmitting(true)
+  const handleSubmit = useCallback(
+    async (e: SubmitEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      if (submitting) return
 
-    try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email.trim(), password)
-      } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password)
+      const trimmedEmail = email.trim()
+      if (!trimmedEmail || !password) return
+
+      setError(null)
+      setSubmitting(true)
+
+      try {
+        if (isSignUp) {
+          await createUserWithEmailAndPassword(auth, trimmedEmail, password)
+        } else {
+          await signInWithEmailAndPassword(auth, trimmedEmail, password)
+        }
+      } catch (err) {
+        setError(formatAuthError(err))
+      } finally {
+        setSubmitting(false)
       }
-    } catch (err) {
-      setError(formatAuthError(err))
-    } finally {
-      setSubmitting(false)
-    }
-  }, [])
+    },
+    [email, isSignUp, password, submitting],
+  )
 
   return (
     <Container
@@ -106,7 +114,7 @@ export function AuthGate() {
             </Form.Group>
 
             {error && (
-              <Alert variant="danger" className="py-2 px-3 small">
+              <Alert variant="danger" className="py-2 px-3 small" role="alert">
                 {error}
               </Alert>
             )}

@@ -1,15 +1,17 @@
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
-import type { CitedRevisionPoint } from '../types/viva'
+import type { CitedRevisionPoint } from '#/types/viva'
 
 export function RevisionCard({
   revision,
   onGenerate,
   loading,
+  canGenerate = true,
 }: {
   revision: CitedRevisionPoint | null | undefined
   onGenerate: () => void
   loading: boolean
+  canGenerate?: boolean
 }) {
   return (
     <section className="rounded-3 border bg-white p-4">
@@ -29,7 +31,7 @@ export function RevisionCard({
           variant="dark"
           size="sm"
           onClick={onGenerate}
-          disabled={loading}
+          disabled={loading || !canGenerate}
         >
           {loading
             ? 'Generating...'
@@ -45,7 +47,7 @@ export function RevisionCard({
           generate your revision point.
         </p>
       ) : !revision.supported ? (
-        <Alert variant="warning" className="mt-3 mb-0 small">
+        <Alert variant="warning" className="mt-3 mb-0 small" role="status">
           {revision.revisionPoint}
         </Alert>
       ) : (
