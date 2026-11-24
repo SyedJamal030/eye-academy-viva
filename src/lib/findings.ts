@@ -1,7 +1,4 @@
-import caseData from '#/data/case-ea-viva-001.json'
 import type { EyeSide, FindingItem } from '#/types/viva'
-
-const ALL_FINDINGS = caseData.findings as FindingItem[]
 
 interface KeywordRule {
   idPrefixOrId: string
@@ -23,8 +20,8 @@ const KEYWORD_RULES: KeywordRule[] = [
     idPrefixOrId: 'iop_',
     patterns: [
       /\biop\b/i,
-      /\bintraocular\b/i,
-      /\bpressure\b/i,
+      /\bintraocular pressure\b/i,
+      /\beye pressure\b/i,
       /\btonometry\b/i,
       /\bgoldmann\b/i,
       /\bmmhg\b/i,
@@ -34,10 +31,9 @@ const KEYWORD_RULES: KeywordRule[] = [
     idPrefixOrId: 'conj_',
     patterns: [
       /\bconjunctiva\b/i,
-      /\bredness\b/i,
+      /\bconjunctival\b/i,
+      /\bciliary flush\b/i,
       /\binjection\b/i,
-      /\bflush\b/i,
-      /\bciliary\b/i,
     ],
   },
   {
@@ -48,7 +44,7 @@ const KEYWORD_RULES: KeywordRule[] = [
       /\boedema\b/i,
       /\bedema\b/i,
       /\bhazy\b/i,
-      /\bcloud/i,
+      /\bcloudiness\b/i,
     ],
   },
   {
@@ -57,28 +53,28 @@ const KEYWORD_RULES: KeywordRule[] = [
       /\banterior chamber\b/i,
       /\bchamber depth\b/i,
       /\bvan herick\b/i,
-      /\bshallow\b/i,
+      /\bshallow chamber\b/i,
     ],
   },
   {
     idPrefixOrId: 'pupil_',
-    patterns: [/\bpupil\b/i, /\bdilat/i, /\breactiv/i, /\bpen torch\b/i],
+    patterns: [/\bpupil\b/i, /\bpupils\b/i, /\bpupillary\b/i, /\bpen torch\b/i],
   },
   {
     idPrefixOrId: 'rapd',
-    patterns: [/\brapd\b/i, /\bafferent\b/i, /\bswinging\b/i],
+    patterns: [/\brapd\b/i, /\bafferent pupillary\b/i, /\bswinging light\b/i],
   },
   {
     idPrefixOrId: 'lens_',
-    patterns: [/\blens\b/i, /\bsclerosis\b/i, /\bcataract/i],
+    patterns: [/\blens\b/i, /\bnuclear sclerosis\b/i, /\bcataract\b/i],
   },
   {
     idPrefixOrId: 'gonio_',
     patterns: [
       /\bgonioscopy\b/i,
-      /\bangle\b/i,
-      /\bsy?nechi/i,
-      /\bpas\b/i,
+      /\bgonio\b/i,
+      /\bsy?nechi\b/i,
+      /\bperipheral anterior synechiae\b/i,
       /\biridotrabecular\b/i,
       /\bzeiss\b/i,
     ],
@@ -87,9 +83,9 @@ const KEYWORD_RULES: KeywordRule[] = [
     idPrefixOrId: 'fundus_',
     patterns: [
       /\boptic disc\b/i,
-      /\bdisc\b/i,
+      /\boptic nerve\b/i,
       /\bfundus\b/i,
-      /\bcup\b/i,
+      /\bcup[- ]to[- ]disc\b/i,
       /\bmacula\b/i,
       /\bbiomicroscopy\b/i,
     ],
@@ -100,38 +96,63 @@ const KEYWORD_RULES: KeywordRule[] = [
       /\brefraction\b/i,
       /\bglasses\b/i,
       /\bfocimetry\b/i,
-      /\bdiopt/i,
-      /\blong-sighted\b/i,
+      /\bdioptres?\b/i,
+      /\bdiopters?\b/i,
     ],
   },
   {
     idPrefixOrId: 'axial_length',
-    patterns: [/\baxial\b/i, /\bbiometry\b/i, /\blength\b/i],
+    patterns: [/\baxial length\b/i, /\bbiometry\b/i],
   },
   {
     idPrefixOrId: 'oct',
-    patterns: [/\boct\b/i, /\btomography\b/i],
+    patterns: [
+      /\boct\b/i,
+      /\boptical coherence tomography\b/i,
+      /\btomography\b/i,
+    ],
   },
   {
     idPrefixOrId: 'bp',
-    patterns: [/\bblood pressure\b/i, /\bbp\b/i, /\bcuff\b/i],
+    patterns: [/\bblood pressure\b/i, /\bbp\b/i],
   },
   {
     idPrefixOrId: 'u_and_e',
     patterns: [
       /\burea\b/i,
-      /\belectrolyte/i,
+      /\belectrolytes?\b/i,
       /\bu&e\b/i,
       /\bu and e\b/i,
       /\bbloods?\b/i,
-      /\bkidney\b/i,
     ],
   },
 ]
 
-export function getAllCaseFindings(): FindingItem[] {
-  return ALL_FINDINGS
-}
+const HISTORY_ONLY_PATTERNS: RegExp[] = [
+  /\bmedications?\b/i,
+  /\bmeds\b/i,
+  /\ballerg(?:y|ies)\b/i,
+  /\bfamily history\b/i,
+  /\bpast medical\b/i,
+  /\bpast ocular\b/i,
+  /\bamlodipine\b/i,
+  /\bchlorphenamine\b/i,
+  /\bsulfonamide\b/i,
+]
+
+const DIAGNOSIS_STATEMENT_PATTERNS: RegExp[] = [
+  /\bacute (?:primary )?angle closure\b/i,
+  /\bangle[- ]closure glaucoma\b/i,
+  /\bmy diagnosis\b/i,
+  /\bworking diagnosis\b/i,
+  /\bdiagnosis is\b/i,
+  /\bmanagement is\b/i,
+  /\bprimary management\b/i,
+  /\bimmediate management\b/i,
+  /\bperipheral iridotomy\b/i,
+  /\bacetazolamide\b/i,
+  /\bpilocarpine\b/i,
+]
 
 export function detectRequestedEye(utterance: string): EyeSide {
   const q = utterance.toLowerCase()
@@ -145,14 +166,31 @@ export function detectRequestedEye(utterance: string): EyeSide {
   return null
 }
 
-export function findMatchingFindings(utterance: string): FindingItem[] {
-  const q = utterance.toLowerCase()
-  const requestedEye = detectRequestedEye(q)
+export function findMatchingFindings(
+  utterance: string,
+  findings: FindingItem[],
+): FindingItem[] {
+  const q = utterance.trim().toLowerCase()
+  if (!q || findings.length === 0) return []
 
+  const isHistoryOnly =
+    HISTORY_ONLY_PATTERNS.some((re) => re.test(q)) &&
+    !/\b(?:check|examine|measure|test|assess|what is|what are)\b/i.test(q)
+  if (isHistoryOnly) return []
+
+  const isDiagnosisStatement =
+    DIAGNOSIS_STATEMENT_PATTERNS.some((re) => re.test(q)) &&
+    !/\b(?:check|examine|measure|test|gonioscopy|iop|pupil|vision|acuity|blood pressure|bp)\b/i.test(
+      q,
+    )
+  if (isDiagnosisStatement) return []
+
+  const requestedEye = detectRequestedEye(q)
   const matchedIds = new Set<string>()
+
   for (const rule of KEYWORD_RULES) {
     if (rule.patterns.some((re) => re.test(q))) {
-      for (const item of ALL_FINDINGS) {
+      for (const item of findings) {
         if (
           item.id === rule.idPrefixOrId ||
           item.id.startsWith(rule.idPrefixOrId)
@@ -163,7 +201,7 @@ export function findMatchingFindings(utterance: string): FindingItem[] {
     }
   }
 
-  return ALL_FINDINGS.filter((item) => {
+  return findings.filter((item) => {
     if (!matchedIds.has(item.id)) return false
     if (!requestedEye || requestedEye === 'both') return true
     if (item.eye === 'both' || item.eye === null) return true

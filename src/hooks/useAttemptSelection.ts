@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '#/hooks/useAuth'
-import type { VivaAttempt, VivaCaseData } from '#/types/viva'
+import type { VivaCaseData, VivaAttempt } from '#/types/viva'
 
 interface CreateAttemptInput {
   caseId: string
@@ -9,7 +9,7 @@ interface CreateAttemptInput {
 }
 
 interface UseAttemptSelectionParams {
-  caseData: VivaCaseData
+  caseData: VivaCaseData | null
   attempts: VivaAttempt[]
   isLoadingAttempts: boolean
   isCreatingAttempt: boolean
@@ -59,7 +59,14 @@ export function useAttemptSelection({
 
   const createInitialOrNewAttempt = useCallback(
     async (isInitialAutoCreate: boolean) => {
-      if (!uid || creationInFlightRef.current || isCreatingAttempt) return null
+      if (
+        !uid ||
+        !caseData ||
+        creationInFlightRef.current ||
+        isCreatingAttempt
+      ) {
+        return null
+      }
       creationInFlightRef.current = true
       if (!isInitialAutoCreate) {
         onError(null)
@@ -94,7 +101,7 @@ export function useAttemptSelection({
   )
 
   useEffect(() => {
-    if (!uid || isLoadingAttempts || isCreatingAttempt) return
+    if (!uid || !caseData || isLoadingAttempts || isCreatingAttempt) return
     if (attempts.length > 0) return
     if (initialCreationAttemptedForUidRef.current === uid) return
     if (creationInFlightRef.current) return
@@ -103,6 +110,7 @@ export function useAttemptSelection({
     void createInitialOrNewAttempt(true)
   }, [
     attempts.length,
+    caseData,
     createInitialOrNewAttempt,
     isCreatingAttempt,
     isLoadingAttempts,

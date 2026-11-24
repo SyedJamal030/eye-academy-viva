@@ -10,7 +10,6 @@ import { TranscriptPanel } from '#/components/TranscriptPanel'
 import { TurnIndicator } from '#/components/TurnIndicator'
 import { VivaHeader } from '#/components/VivaHeader'
 import { VivaSidebar } from '#/components/VivaSidebar'
-import rawCaseData from '#/data/case-ea-viva-001.json'
 import { useAttemptSelection } from '#/hooks/useAttemptSelection'
 import { useAuth } from '#/hooks/useAuth'
 import {
@@ -18,13 +17,10 @@ import {
   useCreateAttemptMutation,
   useGenerateRevisionMutation,
   useProcessVivaTurnMutation,
+  usePublicCaseBriefQuery,
   useUserAttemptsQuery,
 } from '#/hooks/useVivaQueries'
 import { useVivaTurnController } from '#/hooks/useVivaTurnController'
-import { getAllCaseFindings } from '#/lib/findings'
-import type { VivaCaseData } from '#/types/viva'
-
-const caseData = rawCaseData as VivaCaseData
 
 export const Route = createFileRoute('/')({
   component: VivaHomePage,
@@ -36,7 +32,9 @@ function VivaHomePage() {
   const [pageError, setPageError] = useState<string | null>(null)
 
   const uid = user?.uid ?? null
-  const allFindings = useMemo(() => getAllCaseFindings(), [])
+  const caseBriefQuery = usePublicCaseBriefQuery()
+  const caseData = caseBriefQuery.data ?? null
+  const allFindings = useMemo(() => caseData?.findings ?? [], [caseData])
 
   const attemptsQuery = useUserAttemptsQuery(uid)
   const createAttemptMutation = useCreateAttemptMutation(uid)
@@ -53,7 +51,7 @@ function VivaHomePage() {
     useAttemptSelection({
       caseData,
       attempts: existingList,
-      isLoadingAttempts: attemptsQuery.isLoading,
+      isLoadingAttempts: attemptsQuery.isLoading || caseBriefQuery.isLoading,
       isCreatingAttempt: createAttemptMutation.isPending,
       createAttempt: createAttemptMutation.mutateAsync,
       onError: setPageError,
@@ -102,6 +100,9 @@ function VivaHomePage() {
     pageError ??
     speechError ??
     voice.voiceError ??
+    (caseBriefQuery.error instanceof Error
+      ? caseBriefQuery.error.message
+      : null) ??
     (processTurnMutation.error instanceof Error
       ? processTurnMutation.error.message
       : null) ??
@@ -124,14 +125,14 @@ function VivaHomePage() {
       <div className="flex-1 d-flex flex-column min-w-0 w-100">
         <VivaHeader
           sidebarOpen={sidebarOpen}
-          caseId={caseData.case_id}
-          title={caseData.title}
+          caseId={caseData?.case_id ?? '...'}
+          title={caseData?.title ?? 'Loading case...'}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
 
         <Container as="main" className="py-4" style={{ maxWidth: '56rem' }}>
           <div className="d-flex flex-column gap-3">
-            <PatientCaseCard caseData={caseData} />
+            {caseData && <PatientCaseCard caseData={caseData} />}
 
             <ExaminerTurnControls
               phase={voice.phase}

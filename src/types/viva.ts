@@ -47,6 +47,7 @@ export interface CasePatientProfile {
   sex: string
   presenting_complaint: string
   past_ocular_history: string
+  past_medical_history?: string
   medications: string[]
   allergies: string
   family_history: string
@@ -57,4 +58,17 @@ export interface VivaCaseData {
   title: string
   opening_prompt: string
   patient: CasePatientProfile
+  findings: FindingItem[]
+}
+
+export interface ExaminerNotes {
+  diagnosis: string
+  key_points: string[]
+  follow_up_ideas: string[]
+}
+
+export interface FullCaseData extends VivaCaseData {
+  fictional?: boolean
+  disclaimer?: string
+  examiner_notes: ExaminerNotes
 }

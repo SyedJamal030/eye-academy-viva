@@ -10,6 +10,7 @@ import {
 import { runExaminerTurnFn } from '#/server/examiner-turn.fn'
 import { runRevisionPointFn } from '#/server/revision-point.fn'
 import type { VivaAttempt, VivaMessage } from '#/types/viva'
+import { getPublicCaseBriefFn } from '#/server/case-brief.fn'
 
 export const vivaKeys = {
   attempts: (uid: string | null) => ['viva-attempts', uid] as const,
@@ -180,5 +181,13 @@ export function useGenerateRevisionMutation(uid: string | null) {
       )
       void queryClient.invalidateQueries({ queryKey: vivaKeys.attempts(uid) })
     },
+  })
+}
+
+export function usePublicCaseBriefQuery() {
+  return useQuery({
+    queryKey: ['public-case-brief', 'EA-VIVA-001'],
+    queryFn: () => getPublicCaseBriefFn(),
+    staleTime: Infinity,
   })
 }

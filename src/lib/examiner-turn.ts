@@ -1,11 +1,13 @@
 import { Type } from '@google/genai'
-import caseData from '#/data/case-ea-viva-001.json'
-import type { FindingItem, VivaMessage } from '#/types/viva'
+import rawCaseData from '#/data/case-ea-viva-001.json'
+import type { FindingItem, FullCaseData, VivaMessage } from '#/types/viva'
 import {
   findMatchingFindings,
   formatFindingForDisplayAndSpeech,
 } from './findings'
 import { createGeminiClient, parseJsonSafe } from './gemini-client'
+
+const SERVER_CASE = rawCaseData as FullCaseData
 
 export interface ExaminerTurnResult {
   matchedFindings: FindingItem[]
@@ -45,7 +47,10 @@ export async function generateExaminerTurn(params: {
   apiKey?: string
 }): Promise<ExaminerTurnResult> {
   const safeUtterance = sanitizeUntrustedText(params.traineeUtterance)
-  const matchedFindings = findMatchingFindings(safeUtterance)
+  const matchedFindings = findMatchingFindings(
+    safeUtterance,
+    SERVER_CASE.findings,
+  )
   const formatted = matchedFindings.map(formatFindingForDisplayAndSpeech)
   const findingReadouts = formatted.map((f) => f.spokenText)
 
@@ -61,15 +66,14 @@ export async function generateExaminerTurn(params: {
     )
     .join('\n')
 
-  // Wrap trainee input inside explicit data delimiters so the model treats it as untrusted transcript content.
   const prompt = `
 You are an ophthalmology oral exam (viva) examiner conducting practice case EA-VIVA-001.
 
-CASE CONTEXT (Reference Only):
-- Opening prompt: ${caseData.opening_prompt}
-- Examiner diagnosis note: ${caseData.examiner_notes.diagnosis}
-- Key clinical points: ${caseData.examiner_notes.key_points.join('; ')}
-- Suggested follow-up angles: ${caseData.examiner_notes.follow_up_ideas.join('; ')}
+CASE CONTEXT (Server Reference Only, never dump full answer keys unprompted):
+- Opening prompt: ${SERVER_CASE.opening_prompt}
+- Examiner diagnosis note: ${SERVER_CASE.examiner_notes.diagnosis}
+- Key clinical points: ${SERVER_CASE.examiner_notes.key_points.join('; ')}
+- Suggested follow-up angles: ${SERVER_CASE.examiner_notes.follow_up_ideas.join('; ')}
 
 CONVERSATION SO FAR:
 ${historyBlock}
@@ -130,7 +134,6 @@ INSTRUCTIONS:
   const followUpQuestion = parsed.followUpQuestion.trim() || DEFAULT_FOLLOW_UP
   const rawSpoken = parsed.spokenResponse.trim()
 
-  // Guarantee deterministic finding readouts are never dropped if the model paraphrases or omits them.
   const ensuredSpoken =
     findingReadouts.length > 0 &&
     !findingReadouts.every((r) =>
