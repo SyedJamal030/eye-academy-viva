@@ -5,7 +5,11 @@ import {
   findMatchingFindings,
   formatFindingForDisplayAndSpeech,
 } from './findings'
-import { createGeminiClient, parseJsonSafe } from './gemini-client'
+import {
+  createGeminiClient,
+  generateContentWithRetry,
+  parseJsonSafe,
+} from './gemini-client'
 
 const SERVER_CASE = rawCaseData as FullCaseData
 
@@ -94,29 +98,33 @@ INSTRUCTIONS:
 `.trim()
 
   const ai = createGeminiClient(params.apiKey)
-  const response = await ai.models.generateContent({
-    model: import.meta.env.VITE_GEMINI_MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          followUpQuestion: {
-            type: Type.STRING,
-            description:
-              'Exactly one concise follow-up question tied to what the trainee said.',
+  const response = await generateContentWithRetry(
+    ai,
+    {
+      model: import.meta.env.VITE_GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            followUpQuestion: {
+              type: Type.STRING,
+              description:
+                'Exactly one concise follow-up question tied to what the trainee said.',
+            },
+            spokenResponse: {
+              type: Type.STRING,
+              description:
+                'Complete examiner response reading back any matched findings plus the single follow-up question.',
+            },
           },
-          spokenResponse: {
-            type: Type.STRING,
-            description:
-              'Complete examiner response reading back any matched findings plus the single follow-up question.',
-          },
+          required: ['followUpQuestion', 'spokenResponse'],
         },
-        required: ['followUpQuestion', 'spokenResponse'],
       },
     },
-  })
+    { fallbackModel: 'gemini-3.1-flash-lite' },
+  )
 
   const parsed = parseJsonSafe<{
     followUpQuestion?: unknown

@@ -12,8 +12,7 @@ export interface VerifiedFirebaseUser {
 }
 
 function resolveFirebaseProjectId(): string {
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
   if (!projectId || !projectId.trim()) {
     throw new Error(
       'Server configuration error: FIREBASE_PROJECT_ID is not set.',

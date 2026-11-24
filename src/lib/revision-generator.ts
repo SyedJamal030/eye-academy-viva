@@ -1,7 +1,11 @@
 import { Type } from '@google/genai'
 import referencePages from '#/data/glaucoma-reference-pages.json'
 import type { CitedRevisionPoint, VivaMessage } from '#/types/viva'
-import { createGeminiClient, parseJsonSafe } from './gemini-client'
+import {
+  createGeminiClient,
+  generateContentWithRetry,
+  parseJsonSafe,
+} from './gemini-client'
 
 export interface ReferencePageDoc {
   page: number
@@ -165,23 +169,27 @@ RULES:
 `.trim()
 
   const ai = createGeminiClient(params.apiKey)
-  const response = await ai.models.generateContent({
-    model: import.meta.env.VITE_GEMINI_MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          supported: { type: Type.BOOLEAN },
-          revisionPoint: { type: Type.STRING },
-          pageNumber: { type: Type.INTEGER, nullable: true },
-          excerpt: { type: Type.STRING, nullable: true },
+  const response = await generateContentWithRetry(
+    ai,
+    {
+      model: import.meta.env.VITE_GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            supported: { type: Type.BOOLEAN },
+            revisionPoint: { type: Type.STRING },
+            pageNumber: { type: Type.INTEGER, nullable: true },
+            excerpt: { type: Type.STRING, nullable: true },
+          },
+          required: ['supported', 'revisionPoint', 'pageNumber', 'excerpt'],
         },
-        required: ['supported', 'revisionPoint', 'pageNumber', 'excerpt'],
       },
     },
-  })
+    { fallbackModel: 'gemini-3.1-flash-lite' },
+  )
 
   const parsed = parseJsonSafe<Partial<CitedRevisionPoint>>(response.text)
   if (!parsed) {
